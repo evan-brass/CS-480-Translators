@@ -1,0 +1,112 @@
+use crate::ast::{Statement, Expression};
+use crate::lexer::{Token, LexError};
+
+grammar;
+
+pub Program: Box<Statement> = { 
+    <(Statement)*> => Box::new(Statement::Block(<>)),
+ };
+
+Statement: Box<Statement> = {
+    <i: "id"> "=" <v: Condition> "\n" => Box::new(Statement::Assignment(Box::new(Expression::Identifier(i)), v)),
+    "if" <Condition> ":" "\n" <Block> <(ElseIf)*> <Else?> => Box::new(Statement::If(<>)),
+    "while" <Condition> ":" "\n" <Block> => Box::new(Statement::While(<>)),
+    "break" "\n" => Box::new(Statement::Break),
+}
+Else: Box<Statement> = {
+    "else" ":" "\n" <Block> => <>,
+}
+Block: Box<Statement> = {
+    "\t" <(Statement)*> "d" => Box::new(Statement::Block(<>)),
+}
+ElseIf: Box<Statement> = {
+    "elif" <Condition> ":" "\n" <Block> => Box::new(Statement::ElIf(<>)),
+}
+Condition: Box<Expression> = {
+    // And and or are commutative
+    "!" <Condition> => Box::new(Expression::Negate(<>)),
+    ConditionNot,
+}
+ConditionNot: Box<Expression> = {
+    <ConditionNot> "and" <ConditionInner> => Box::new(Expression::And(<>)),
+    <ConditionNot> "or" <ConditionInner> => Box::new(Expression::Or(<>)),
+    <ConditionNot> "==" <ConditionInner> => Box::new(Expression::Equal(<>)),
+    <ConditionNot> "!=" <ConditionInner> => Box::new(Expression::NotEqual(<>)),
+    ConditionInner,
+}
+ConditionInner: Box<Expression> = {
+    <"bool"> => Box::new(Expression::Boolean(<>)),
+    <Expression> "<" <Expression> => Box::new(Expression::LT(<>)),
+    <Expression> ">" <Expression> => Box::new(Expression::GT(<>)),
+    <Expression> "<=" <Expression> => Box::new(Expression::LTE(<>)),
+    <Expression> ">=" <Expression> => Box::new(Expression::GTE(<>)),
+    Expression,
+}
+Expression: Box<Expression> = {
+    <Expression> "+" <Term> => Box::new(Expression::Add(<>)),
+    <Expression> "-" <Term> => Box::new(Expression::Subtract(<>)),
+    Term,
+}
+Term: Box<Expression> = {
+    <Term> "*" <Factor> => Box::new(Expression::Multiply(<>)),
+    <Term> "/" <Factor> => Box::new(Expression::Divide(<>)),
+    Factor,
+}
+Factor: Box<Expression> = {
+    <"int"> => Box::new(Expression::Integer(<>)),
+    <"float"> => Box::new(Expression::Float(<>)),
+    <"id"> => Box::new(Expression::Identifier(<>)),
+    "(" <Condition> ")" => <>,
+}
+
+extern {
+    type Location = usize;
+    type Error = LexError;
+
+    enum Token {
+        // Keywords:
+        "and" => Token::And,
+        "break" => Token::Break,
+        "def" => Token::Def,
+        "elif" => Token::Elif,
+        "else" => Token::Else,
+        "for" => Token::For,
+        "if" => Token::If,
+        "!" => Token::Not,
+        "or" => Token::Or,
+        "return" => Token::Return,
+        "while" => Token::While,
+
+        // Types:
+        "bool" => Token::Boolean(_),
+        "int" => Token::Integer(_),
+        "float" => Token::Float(_),
+        
+        "id" => Token::Identifier(_),
+
+        // Operators:
+        "=" => Token::Assign,
+        "+" => Token::Add,
+        "-" => Token::Subtract,
+        "*" => Token::Multiply,
+        "/" => Token::Divide,
+        "==" => Token::Equal,
+        "!=" => Token::NotEqual,
+        ">" => Token::GT,
+        ">=" => Token::GTE,
+        "<" => Token::LT,
+        "<=" => Token::LTE,
+
+        "(" => Token::ParenOpen,
+        ")" => Token::ParenClose,
+
+        "," => Token::Comma,
+        ":" => Token::Colon,
+
+        // Handled / Implemented by the overlay lexer
+        // TODO: Handle Comments
+        "\n" => Token::Newline,
+        "\t" => Token::Indent,
+        "d" => Token::Dedent,
+    }
+}
