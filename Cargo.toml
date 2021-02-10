@@ -1,5 +1,5 @@
 [package]
-name = "assignment-3-brassev"
+name = "translators"
 version = "0.1.0"
 authors = ["Evan Brass <brassev@oregonstate.edu>"]
 edition = "2018"

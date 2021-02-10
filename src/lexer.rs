@@ -94,12 +94,6 @@ enum LogosToken {
     #[token = ":"]
     Colon,
 
-    // Handled / Implemented by the overlay lexer
-    // TODO: Handle Comments
-    Newline,
-    Indent,
-    Dedent,
-
     #[regex = "#.*"]
     Comment,
 
@@ -162,12 +156,12 @@ pub enum Token {
 }
 
 pub struct Lexer<'input> {
-    input: &'input mut BufRead,
+    input: &'input mut dyn BufRead,
     indents: Vec<i32>,
     tokens: VecDeque<Token> // TODO: Include Span information.
 }
 impl<'input> Lexer<'input> {
-    pub fn new(source: &'input mut BufRead) -> Self {
+    pub fn new(source: &'input mut dyn BufRead) -> Self {
         Lexer { 
             input: source,
             indents: vec![0],
@@ -269,9 +263,6 @@ impl<'input> Iterator for Lexer<'input> {
                                         LogosToken::ParenClose => Token::ParenClose,
                                         LogosToken::Comma => Token::Comma,
                                         LogosToken::Colon => Token::Colon,
-                                        LogosToken::Newline => Token::Newline,
-                                        LogosToken::Indent => Token::Indent,
-                                        LogosToken::Dedent => Token::Dedent,
                                         _ => unreachable!(), // Should never happen
                                     });
                                 }
